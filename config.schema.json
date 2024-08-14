@@ -97,6 +97,10 @@
               "type": "boolean",
               "default": false
             },
+            "FanMode": {
+            "type": "boolean",
+            "default": false
+          },
             "temperatureSensor": {
               "type": "string",
               "required": true,
@@ -359,6 +363,16 @@
               "description": "If enabled, then xFan functionality is turned on automatically on the device",
               "condition": {
                 "functionBody": "return (model.devices && model.devices[arrayIndices] && model.devices[arrayIndices].mac && /^[a-f0-9]{12}$/.test(model.devices[arrayIndices].mac) && model.devices[arrayIndices].disabled !== true);"
+              }
+            },
+            {
+              "key": "devices[].FanMode",
+              "flex": "1 1 50%",
+              "title": "fan mode",
+              "type": "boolean",
+              "default": true,
+              "condition": {
+                "functionBody": "return (model.devices[arrayIndices].disabled !== true);"
               }
             },
             {
