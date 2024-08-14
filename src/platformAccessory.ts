@@ -424,6 +424,42 @@ export class GreeAirConditioner {
               maxValue: this.deviceConfig.maximumTargetTemperature });
         }
         break;
+            const FanMode = this.getConfig('FanMode');
+    if (FanMode) {
+      this.Fan =
+        this.accessory.getService(this.platform.messages.fanSpeed) ||
+        this.accessory.addService(
+          this.platform.Service.Fanv2,
+          this.platform.messages.fanSpeed
+        );
+      this.Fan.addOptionalCharacteristic(
+        this.platform.Characteristic.ConfiguredName
+      );
+      this.Fan.setCharacteristic(
+        this.platform.Characteristic.ConfiguredName,
+        this.getConfiguredName(
+          `${this.platform.messages.fanSpeed}(${this.platform.messages.fanMode})`
+        )
+      );
+      this.Fan.getCharacteristic(this.platform.Characteristic.Active)
+        .on('get', this.getCharacteristic.bind(this, 'fanMode'))
+        .on('set', this.setCharacteristic.bind(this, 'fanMode'));
+      this.Fan.getCharacteristic(this.platform.Characteristic.RotationSpeed)
+        .setProps({
+          minValue: 0,
+          maxValue: 5,
+          minStep: 1,
+        })
+        .on('get', this.getCharacteristic.bind(this, 'speed'))
+        .on('set', this.setCharacteristic.bind(this, 'speed'));
+    } else {
+      // clean up
+      const fanService = this.accessory.getService(
+        this.platform.messages.fanSpeed
+      );
+      if (fanService) {
+        this.accessory.removeService(fanService);
+      }
     }
   }
 
@@ -575,11 +611,46 @@ export class GreeAirConditioner {
     this.platform.log.info(`[${this.getDeviceLabel()}]`, logValue);
     this.sendCommand(command);
   }
-
+  
+  get fanMode() {
+    return (
+      this.status[commands.mode.code] === commands.mode.value.fan &&
+      this.status[commands.power.code] === commands.power.value.on
+    );
+  }
+  set fanMode(value) {
+    if (!!value === this.fanMode) {
+      return;
+    }
+    if (value) {
+      // cache current mode with key: last
+      if (
+        this.power &&
+        this.status[commands.mode.code] !== commands.mode.value.fan
+      ) {
+        this.cacheMode('last');
+      }
+      this.sendCommand({
+        [commands.mode.code]: commands.mode.value.fan,
+        [commands.power.code]: commands.power.value.on,
+      });
+    } else {
+      const lastState = this.getModeCache('last', true);
+      if (lastState) {
+        this.sendCommand(lastState);
+      } else {
+        // power off
+        this.sendCommand({
+          [commands.power.code]: commands.power.value.off,
+        });
+      }
+    }
+  }
+  
   get currentTemperature() {
     return this.status[commands.temperature.code] - (this.deviceConfig.sensorOffset) || 25;
   }
-
+  
   get targetTemperature() {
     let minValue = this.deviceConfig.minimumTargetTemperature;
     let maxValue = this.deviceConfig.maximumTargetTemperature;
