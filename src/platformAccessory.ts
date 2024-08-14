@@ -66,6 +66,42 @@ export class GreeAirConditioner {
         this.accessory.removeService(ts);
       }
     }
+    const FanMode = this.getConfig('FanMode');
+    if (FanMode) {
+      this.Fan =
+        this.accessory.getService(this.platform.messages.fanSpeed) ||
+        this.accessory.addService(
+          this.platform.Service.Fanv2,
+          this.platform.messages.fanSpeed
+        );
+      this.Fan.addOptionalCharacteristic(
+        this.platform.Characteristic.ConfiguredName
+      );
+      this.Fan.setCharacteristic(
+        this.platform.Characteristic.ConfiguredName,
+        this.getConfiguredName(
+          `${this.platform.messages.fanSpeed}(${this.platform.messages.fanMode})`
+        )
+      );
+      this.Fan.getCharacteristic(this.platform.Characteristic.Active)
+        .on('get', this.getCharacteristic.bind(this, 'fanMode'))
+        .on('set', this.setCharacteristic.bind(this, 'fanMode'));
+      this.Fan.getCharacteristic(this.platform.Characteristic.RotationSpeed)
+        .setProps({
+          minValue: 0,
+          maxValue: 5,
+          minStep: 1,
+        })
+        .on('get', this.getCharacteristic.bind(this, 'speed'))
+        .on('set', this.setCharacteristic.bind(this, 'speed'));
+    } else {
+      // clean up
+      const fanService = this.accessory.getService(
+        this.platform.messages.fanSpeed
+      );
+      if (fanService) {
+        this.accessory.removeService(fanService);
+      }
 
     this.HeaterCooler.setPrimaryService(true);
     this.TemperatureSensor?.setPrimaryService(false);
@@ -424,42 +460,6 @@ export class GreeAirConditioner {
               maxValue: this.deviceConfig.maximumTargetTemperature });
         }
         break;
-            const FanMode = this.getConfig('FanMode');
-    if (FanMode) {
-      this.Fan =
-        this.accessory.getService(this.platform.messages.fanSpeed) ||
-        this.accessory.addService(
-          this.platform.Service.Fanv2,
-          this.platform.messages.fanSpeed
-        );
-      this.Fan.addOptionalCharacteristic(
-        this.platform.Characteristic.ConfiguredName
-      );
-      this.Fan.setCharacteristic(
-        this.platform.Characteristic.ConfiguredName,
-        this.getConfiguredName(
-          `${this.platform.messages.fanSpeed}(${this.platform.messages.fanMode})`
-        )
-      );
-      this.Fan.getCharacteristic(this.platform.Characteristic.Active)
-        .on('get', this.getCharacteristic.bind(this, 'fanMode'))
-        .on('set', this.setCharacteristic.bind(this, 'fanMode'));
-      this.Fan.getCharacteristic(this.platform.Characteristic.RotationSpeed)
-        .setProps({
-          minValue: 0,
-          maxValue: 5,
-          minStep: 1,
-        })
-        .on('get', this.getCharacteristic.bind(this, 'speed'))
-        .on('set', this.setCharacteristic.bind(this, 'speed'));
-    } else {
-      // clean up
-      const fanService = this.accessory.getService(
-        this.platform.messages.fanSpeed
-      );
-      if (fanService) {
-        this.accessory.removeService(fanService);
-      }
     }
   }
 
